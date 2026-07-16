@@ -1,0 +1,24 @@
+# Local workflow and editor state
+.workflow/
+~$*.docx
+
+# Python
+__pycache__/
+*.py[cod]
+.coverage
+htmlcov/
+
+# C/C++ host builds
+build/
+*.exe
+*.o
+*.obj
+*.gcov
+*.gcda
+*.gcno
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

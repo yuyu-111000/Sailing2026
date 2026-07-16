@@ -1,0 +1,8 @@
+[project]
+name = "sailing-upper"
+version = "0.1.0"
+description = "Hardware-independent upper-computer framework for Sailing2026"
+requires-python = ">=3.12"
+
+[tool.unittest]
+start-directory = "tests"
