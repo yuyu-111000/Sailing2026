@@ -1,41 +1,21 @@
 param(
-    [string]$Python = "python",
     [string]$Cxx = "g++"
 )
 
 $ErrorActionPreference = "Stop"
-$root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$root = Split-Path -Parent $PSScriptRoot
+$build = Join-Path $root "build"
+New-Item -ItemType Directory -Force -Path $build | Out-Null
+$binary = Join-Path $build "lower_computer_tests.exe"
 
-Push-Location $root
-try {
-    & $Python -c "import sys; assert sys.version_info >= (3, 12), sys.version"
-    if ($LASTEXITCODE -ne 0) { throw "Python 3.12+ check failed" }
+& $Cxx -std=c++17 -Wall -Wextra -Wpedantic -Werror `
+    -I(Join-Path $root "lower_computer/include") `
+    (Join-Path $root "lower_computer/src/sensors.cpp") `
+    (Join-Path $root "lower_computer/src/navigation.cpp") `
+    (Join-Path $root "lower_computer/src/controller.cpp") `
+    (Join-Path $root "lower_computer/tests/test_main.cpp") `
+    -o $binary
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-    Push-Location "upper_computer"
-    try {
-        & $Python -m compileall -q sailing tests
-        if ($LASTEXITCODE -ne 0) { throw "Python compile check failed" }
-        & $Python -m unittest discover -s tests -v
-        if ($LASTEXITCODE -ne 0) { throw "Python tests failed" }
-    }
-    finally {
-        Pop-Location
-    }
-
-    New-Item -ItemType Directory -Force -Path "build" | Out-Null
-    & $Cxx -std=c++17 -Wall -Wextra -Wpedantic -Werror `
-        -Ilower_computer/include `
-        lower_computer/src/protocol.cpp `
-        lower_computer/src/safety_supervisor.cpp `
-        lower_computer/tests/test_main.cpp `
-        -o build/lower_computer_tests.exe
-    if ($LASTEXITCODE -ne 0) { throw "C++17 build failed" }
-
-    & ".\build\lower_computer_tests.exe" "shared\test-vectors\protocol-v1.tsv"
-    if ($LASTEXITCODE -ne 0) { throw "C++ tests failed" }
-
-    Write-Host "All host-only Sailing2026 checks passed."
-}
-finally {
-    Pop-Location
-}
+& $binary
+exit $LASTEXITCODE

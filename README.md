@@ -1,61 +1,22 @@
-# Sailing2026
+# Sailing2026：单主控红外自主航行
 
-Software framework for the C1-2 intelligent-navigation event and the C2
-simulated-shore-fire-support event.
-
-This first version is deliberately hardware-independent. It establishes module
-boundaries, mission state machines, a versioned upper/lower communication
-protocol, safety behavior, simulation fakes, and host-side tests. It does not
-select a camera, IMU, upper computer, MCU, motor driver, steering mechanism, or
-launcher interface.
-
-## Repository layout
+本仓库只保留 C1 智能航行下位机核心。系统不使用上位机、相机或无线遥控：16 路 TSOP34838 环形探头板和 JY61 通过两路串口接入主控，主控以两路 PWM 控制双电调和双推进器差速。
 
 ```text
-upper_computer/   Python mission, perception, guidance, and communication core
-lower_computer/   Portable C++17 realtime execution and safety core
-shared/           Cross-language protocol contract and golden test vectors
-docs/             Competition rules and project-facing design notes
-scripts/          Local validation entry points
+16路红外探头 -> 探头板采集MCU -> UART --+
+                                         +-> 主控 -> PWM x2 -> 电调 x2 -> 推进器 x2
+JY61 --------------------------------UART-+
+
+4节5号干电池 -> DC-DC / 电源缓冲 -> 全系统
 ```
 
-## Design boundary
+规则要求比赛全部能量来自组委会提供的 4 节 5 号干电池。超级电容是否允许、是否必须以零电压检录，应取得组委会书面确认；软件设计不依赖超级电容。
 
-- The upper computer decides *what the vehicle should do*.
-- The lower computer decides *how to execute commands safely in realtime*.
-- Hardware-specific code implements narrow adapter interfaces at the edges.
-- C1-2 is the base mission. C2 reuses navigation and adds target acquisition,
-  aiming, and firing authorization.
-- Any stale, malformed, or unsafe command must degrade to neutral propulsion,
-  neutral steering, and an inhibited launcher.
+- [下位机设计与串口协议](lower_computer/README.md)
+- [比赛规则](docs/附件6-第十五届海洋航行器设计与制作大赛评分细则-v6（2026.04.29）.docx)
 
-See [software architecture](docs/software-architecture.md) and the
-[protocol contract](shared/protocol-v1.md) for the current design.
-
-## Current runnable baseline
-
-- Python 3.12 upper-computer state machines for the shared lifecycle, ordered
-  ten-gate C1-2 route, and C2 transit/target/fake-fire flow.
-- Portable C++17 lower-computer framing, fixed-capacity fakes, watchdog,
-  E-stop latch, session/sequence validation, C1 launch prohibition, and C2
-  two-stage single-shot protection.
-- One shared set of Python/C++ protocol golden vectors.
-- Deterministic, hardware-free C1 and C2 demonstrations.
-
-Run every host-side check from PowerShell (pass tool paths when they are not on
-`PATH`):
+运行全部检查：
 
 ```powershell
-.\scripts\validate.ps1 -Python "C:\path\to\python.exe" -Cxx "C:\path\to\g++.exe"
+.\scripts\validate.ps1 -Cxx 'D:\MinGW\mingw64\bin\g++.exe'
 ```
-
-Run the fake mission demonstrations:
-
-```powershell
-.\scripts\run-demos.ps1 -Python "C:\path\to\python.exe"
-```
-
-This is an algorithm-ready scaffold, not a finished sailing algorithm. Vision,
-infrared decoding, state estimation, route guidance, PID tuning, and every
-physical hardware adapter remain intentionally deferred until the platform is
-selected.
